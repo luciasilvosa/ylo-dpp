@@ -1,176 +1,348 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { lotes } from "../data/lotes";
-
-type Tab = "producto" | "materiales" | "blockchain";
+import { lotes, visualLotes, type DPP } from "../data/lotes";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 function PaginaDPP() {
   const { tokenId } = useParams<{ tokenId: string }>();
   const index = Number(tokenId);
   const lote = lotes[index];
-  const [tab, setTab] = useState<Tab>("producto");
+  const visual = visualLotes[index];
 
-  if (!lote) {
+  if (!lote || !visual) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <p className="text-stone-600">Pasaporte no encontrado.</p>
+      <div className="min-h-screen bg-ylo-bg flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center px-8">
+          <div className="text-center">
+            <p className="text-2xl font-semibold text-ylo-ink">
+              Pasaporte no encontrado
+            </p>
+            <p className="mt-3 text-ylo-ink-soft">
+              El identificador solicitado no corresponde a ningún DPP publicado.
+            </p>
+            <Link
+              to="/catalogo"
+              className="inline-block mt-8 bg-ylo-ink text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-ylo-ink-soft transition-colors"
+            >
+              Volver al catálogo
+            </Link>
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
 
+  const otrosLotes = lotes
+    .map((l, i) => ({ ...l, idx: i }))
+    .filter((l) => l.modelId === lote.modelId && l.idx !== index);
+
+  const todasHuellasModelo = lotes
+    .filter((l) => l.modelId === lote.modelId)
+    .map((l) => l.carbonFootprint.value);
+  const huellaMin = Math.min(...todasHuellasModelo);
+  const huellaMax = Math.max(...todasHuellasModelo);
+  const esElMasLimpio =
+    todasHuellasModelo.length > 1 && lote.carbonFootprint.value === huellaMin;
+  const esElMasContaminante =
+    todasHuellasModelo.length > 1 && lote.carbonFootprint.value === huellaMax;
+
   return (
-    <div className="min-h-screen bg-stone-50">
-      <header className="border-b border-stone-200 bg-white">
-        <div className="max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
-          <Link to="/" className="text-sm text-stone-500 hover:text-stone-900">
-            ← Volver al catálogo
-          </Link>
-          <span className="text-xs uppercase tracking-wide text-stone-400">
-            DPP verificado en blockchain
-          </span>
-        </div>
-      </header>
+    <div className="min-h-screen bg-ylo-bg flex flex-col">
+      <Header />
 
-      <main className="max-w-4xl mx-auto px-6 py-12">
-        <p className="text-xs uppercase tracking-wide text-stone-500">
-          {lote.category}
-        </p>
-        <h1 className="text-4xl font-bold text-stone-900 mt-2">
-          {lote.productName}
-        </h1>
-        <p className="text-stone-600 mt-2">Lote {lote.batchId}</p>
+      <main className="flex-1">
+        <Hero lote={lote} visual={visual} index={index} />
+        <NavAnclas />
 
-        <div className="mt-10 border-b border-stone-200 flex gap-8">
-          <BotonTab activo={tab === "producto"} onClick={() => setTab("producto")}>
-            Producto
-          </BotonTab>
-          <BotonTab activo={tab === "materiales"} onClick={() => setTab("materiales")}>
-            Materiales y cadena
-          </BotonTab>
-          <BotonTab activo={tab === "blockchain"} onClick={() => setTab("blockchain")}>
-            Blockchain
-          </BotonTab>
-        </div>
+        <SeccionMateriales lote={lote} />
+        <SeccionRecorrido lote={lote} />
+        <SeccionHuella
+          lote={lote}
+          esElMasLimpio={esElMasLimpio}
+          esElMasContaminante={esElMasContaminante}
+          huellaMin={huellaMin}
+          huellaMax={huellaMax}
+        />
+        <SeccionCuidado lote={lote} />
 
-        <div className="mt-8">
-          {tab === "producto" && <PanelProducto lote={lote} />}
-          {tab === "materiales" && <PanelMateriales lote={lote} />}
-          {tab === "blockchain" && <PanelBlockchain lote={lote} index={index} />}
-        </div>
+        {otrosLotes.length > 0 && (
+          <OtrasTiradas lote={lote} otrosLotes={otrosLotes} />
+        )}
+
+        <CTAAuditor index={index} />
       </main>
 
-      <footer className="border-t border-stone-200 bg-white mt-16">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-          <p className="text-xs text-stone-500">
-            YLÖ · Moda Activa Sostenible S.L. · Trabajo Fin de Grado UIE 2025
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
 
-function BotonTab({
-  activo,
-  onClick,
-  children,
+function Hero({
+  lote,
+  visual,
+  index,
 }: {
-  activo: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  lote: DPP;
+  visual: typeof visualLotes[0];
+  index: number;
+}) {
+  const imagenes = [
+    visual.imagenes.front,
+    visual.imagenes.back,
+    visual.imagenes.hanger,
+  ];
+  const [activa, setActiva] = useState(0);
+
+  return (
+    <section className="max-w-7xl mx-auto px-6 sm:px-8 pt-8 pb-16">
+      <div className="mb-6">
+        <Link
+          to="/catalogo"
+          className="text-sm text-ylo-ink-soft hover:text-ylo-ink transition-colors"
+        >
+          ← Volver al catálogo
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+        <div className="lg:col-span-7">
+          <div className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-ylo-surface">
+            <img
+              src={imagenes[activa]}
+              alt={`${lote.productName} ${visual.colorName}`}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute top-5 left-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-ylo-surface/95 backdrop-blur-sm border border-ylo-border">
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: visual.color }}
+              ></span>
+              <p className="text-xs font-medium text-ylo-ink">
+                {visual.colorName}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {imagenes.map((img, i) => (
+              <button
+                key={i}
+                onClick={() => setActiva(i)}
+                className={`relative aspect-[4/5] rounded-xl overflow-hidden border-2 transition-colors ${
+                  activa === i
+                    ? "border-ylo-ink"
+                    : "border-ylo-border hover:border-ylo-ink-soft"
+                }`}
+              >
+                <img
+                  src={img}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="lg:col-span-5">
+          <p className="text-xs uppercase tracking-widest text-ylo-ink-soft mb-3">
+            {lote.category}
+          </p>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tightest text-ylo-ink leading-[1.05]">
+            {lote.productName}
+          </h1>
+          <p className="mt-2 text-lg text-ylo-ink-soft">{visual.colorName}</p>
+
+          <p className="mt-6 text-base text-ylo-ink-soft leading-relaxed">
+            Pasaporte Digital de Producto del lote producido en{" "}
+            <span className="text-ylo-ink font-medium">
+              {lote.production.facility.city},{" "}
+              {lote.production.facility.country}
+            </span>{" "}
+            el {formatearFechaLarga(lote.production.productionDate)}.
+          </p>
+
+          <div className="mt-8 grid grid-cols-2 gap-4">
+            <DatoClave etiqueta="Lote" valor={lote.batchId} mono />
+            <DatoClave
+              etiqueta="Fábrica"
+              valor={lote.production.facility.name}
+            />
+            <DatoClave
+              etiqueta="Volumen"
+              valor={`${lote.production.volume} ud.`}
+            />
+            <DatoClave
+              etiqueta="Huella"
+              valor={`${lote.carbonFootprint.value} kgCO₂e`}
+            />
+          </div>
+
+          <div className="mt-8 p-5 bg-ylo-surface border border-ylo-border rounded-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-full bg-ylo-pool flex items-center justify-center flex-shrink-0">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="white"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-ylo-ink">
+                  Verificado en blockchain
+                </p>
+                <p className="text-xs text-ylo-ink-soft">
+                  Polygon · Soulbound Token v{lote.version}
+                </p>
+              </div>
+            </div>
+            <Link
+              to={`/audit/${index}`}
+              className="text-sm font-medium text-ylo-pool-dark hover:text-ylo-ink transition-colors inline-flex items-center gap-1"
+            >
+              Ver verificación técnica
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DatoClave({
+  etiqueta,
+  valor,
+  mono = false,
+}: {
+  etiqueta: string;
+  valor: string;
+  mono?: boolean;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-        activo
-          ? "border-stone-900 text-stone-900"
-          : "border-transparent text-stone-500 hover:text-stone-900"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function PanelProducto({ lote }: { lote: typeof lotes[0] }) {
-  return (
-    <div className="space-y-8">
-      <Bloque titulo="Producción">
-        <Fila etiqueta="Fecha de fabricación" valor={lote.production.productionDate} />
-        <Fila etiqueta="Volumen" valor={`${lote.production.volume} unidades`} />
-        <Fila etiqueta="Método" valor={lote.production.productionMethod} />
-        <Fila
-          etiqueta="Centro de producción"
-          valor={`${lote.production.facility.name} (${lote.production.facility.city}, ${lote.production.facility.country})`}
-        />
-      </Bloque>
-
-      <Bloque titulo="Huella de carbono">
-        <Fila
-          etiqueta="Valor"
-          valor={`${lote.carbonFootprint.value} ${lote.carbonFootprint.unit}`}
-        />
-        <Fila etiqueta="Metodología" valor={lote.carbonFootprint.methodology} />
-        <Fila etiqueta="Alcance" valor={lote.carbonFootprint.scope} />
-        <Fila
-          etiqueta="Verificación externa"
-          valor={lote.carbonFootprint.certified ? "Sí" : "No (autodeclaración)"}
-        />
-      </Bloque>
-
-      <Bloque titulo="Cuidado">
-        <Fila etiqueta="Lavado" valor={lote.careInstructions.washing} />
-        <Fila etiqueta="Secado" valor={lote.careInstructions.drying} />
-        <Fila etiqueta="Planchado" valor={lote.careInstructions.ironing} />
-        <Fila etiqueta="Reparación" valor={lote.careInstructions.repairTips} />
-      </Bloque>
-
-      <Bloque titulo="Fin de vida">
-        <Fila
-          etiqueta="Reciclable"
-          valor={lote.endOfLife.recyclable ? "Sí" : "No"}
-        />
-        <Fila etiqueta="Instrucciones" valor={lote.endOfLife.recyclingInstructions} />
-        <Fila etiqueta="Desensamblaje" valor={lote.endOfLife.disassembly} />
-      </Bloque>
+    <div className="border-t border-ylo-border pt-3">
+      <p className="text-[10px] uppercase tracking-widest text-ylo-ink-soft mb-1">
+        {etiqueta}
+      </p>
+      <p
+        className={`text-sm text-ylo-ink ${
+          mono ? "font-mono text-[11px] break-all" : "font-medium"
+        }`}
+      >
+        {valor}
+      </p>
     </div>
   );
 }
 
-function PanelMateriales({ lote }: { lote: typeof lotes[0] }) {
-  return (
-    <div className="space-y-8">
-      <Bloque titulo="Composición">
-        {lote.materials.map((m, i) => (
-          <Fila
-            key={i}
-            etiqueta={m.fiber}
-            valor={`${m.percentage}% · Origen: ${m.origin}`}
-          />
-        ))}
-      </Bloque>
+function NavAnclas() {
+  const items = [
+    { id: "materiales", label: "Materiales" },
+    { id: "recorrido", label: "Recorrido" },
+    { id: "huella", label: "Huella" },
+    { id: "cuidados", label: "Cuidados" },
+  ];
 
-      <Bloque titulo="Cadena de suministro">
-        <div className="space-y-4">
-          {lote.suppliers.map((s, i) => (
-            <div
-              key={i}
-              className="border-l-2 border-stone-200 pl-4 py-1"
+  return (
+    <div className="sticky top-[72px] z-[5] bg-ylo-bg/90 backdrop-blur-md border-y border-ylo-border">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8">
+        <nav className="flex gap-1 overflow-x-auto">
+          {items.map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              className="text-sm text-ylo-ink-soft hover:text-ylo-ink transition-colors py-4 px-4 whitespace-nowrap"
             >
-              <p className="text-xs uppercase tracking-wide text-stone-500">
+              {item.label}
+            </a>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
+}
+
+function SeccionMateriales({ lote }: { lote: DPP }) {
+  return (
+    <SeccionWrap id="materiales" titulo="De qué está hecha">
+      <p className="text-lg text-ylo-ink-soft leading-relaxed max-w-2xl mb-12">
+        Cada material elegido tiene un porqué. Composición exacta y origen de
+        cada fibra.
+      </p>
+      <div className="space-y-6 max-w-3xl">
+        {lote.materials.map((m) => (
+          <div key={m.fiber}>
+            <div className="flex items-baseline justify-between mb-2">
+              <p className="text-lg font-medium text-ylo-ink">{m.fiber}</p>
+              <p className="text-2xl font-bold text-ylo-ink tabular-nums">
+                {m.percentage}%
+              </p>
+            </div>
+            <div className="h-1.5 bg-ylo-surface rounded-full overflow-hidden">
+              <div
+                className="h-full bg-ylo-pool-dark rounded-full"
+                style={{ width: `${m.percentage}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-ylo-ink-soft mt-2">
+              Origen: {m.origin}
+            </p>
+          </div>
+        ))}
+      </div>
+    </SeccionWrap>
+  );
+}
+
+function SeccionRecorrido({ lote }: { lote: DPP }) {
+  return (
+    <SeccionWrap id="recorrido" titulo="El recorrido de esta prenda" surface>
+      <p className="text-lg text-ylo-ink-soft leading-relaxed max-w-2xl mb-12">
+        Desde la fibra hasta tu armario, esta prenda ha pasado por{" "}
+        <span className="text-ylo-ink font-medium">
+          {lote.suppliers.length} eslabones documentados
+        </span>
+        .
+      </p>
+
+      <div className="relative max-w-3xl">
+        {lote.suppliers.map((s, i) => (
+          <div key={i} className="flex gap-6 pb-10 last:pb-0 relative">
+            {i < lote.suppliers.length - 1 && (
+              <div className="absolute left-[19px] top-12 w-px bg-ylo-border h-[calc(100%-32px)]"></div>
+            )}
+
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-ylo-pool flex items-center justify-center text-white text-sm font-mono z-10">
+              {String(i + 1).padStart(2, "0")}
+            </div>
+
+            <div className="flex-1 pt-1">
+              <p className="text-xs uppercase tracking-widest text-ylo-ink-soft">
                 {s.role}
               </p>
-              <p className="text-stone-900 mt-1">{s.name}</p>
-              <p className="text-sm text-stone-600">
+              <p className="text-lg font-semibold text-ylo-ink mt-1">
+                {s.name}
+              </p>
+              <p className="text-sm text-ylo-ink-soft mt-1">
                 {s.city}, {s.country}
               </p>
               {s.certifications.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {s.certifications.map((c) => (
                     <span
                       key={c}
-                      className="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded"
+                      className="text-xs px-3 py-1 rounded-full bg-ylo-bg border border-ylo-border text-ylo-ink"
                     >
                       {c}
                     </span>
@@ -178,90 +350,328 @@ function PanelMateriales({ lote }: { lote: typeof lotes[0] }) {
                 </div>
               )}
             </div>
-          ))}
-        </div>
-      </Bloque>
-
-      <Bloque titulo="Certificaciones del lote">
-        {lote.certifications.map((c, i) => (
-          <Fila
-            key={i}
-            etiqueta={`${c.name} (${c.issuer})`}
-            valor={`Válida hasta ${c.validUntil} · ${
-              c.certified ? "Verificada externamente" : "Autodeclaración"
-            }`}
-          />
+          </div>
         ))}
-      </Bloque>
-    </div>
+      </div>
+
+      {lote.certifications.length > 0 && (
+        <div className="mt-16 pt-12 border-t border-ylo-border">
+          <p className="text-xs uppercase tracking-widest text-ylo-ink-soft mb-6">
+            Certificaciones del lote
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+            {lote.certifications.map((c) => (
+              <div
+                key={c.name}
+                className="flex items-start gap-4 p-5 bg-ylo-bg rounded-2xl border border-ylo-border"
+              >
+                <div className="w-10 h-10 rounded-full bg-ylo-pool flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="white"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-ylo-ink">
+                    {c.name}
+                  </p>
+                  <p className="text-xs text-ylo-ink-soft mt-1">{c.issuer}</p>
+                  <p className="text-xs text-ylo-ink-soft mt-2">
+                    Válida hasta {c.validUntil}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </SeccionWrap>
   );
 }
 
-function PanelBlockchain({
+function SeccionHuella({
   lote,
-  index,
+  esElMasLimpio,
+  esElMasContaminante,
+  huellaMin,
+  huellaMax,
 }: {
-  lote: typeof lotes[0];
-  index: number;
+  lote: DPP;
+  esElMasLimpio: boolean;
+  esElMasContaminante: boolean;
+  huellaMin: number;
+  huellaMax: number;
 }) {
+  const kmCoche = Math.round(lote.carbonFootprint.value * 5);
+
   return (
-    <div className="space-y-8">
-      <Bloque titulo="Identidad criptográfica del pasaporte">
-        <Fila etiqueta="Token ID" valor={String(index)} />
-        <Fila etiqueta="Estándar" valor="ERC-721 + EIP-5192 (Soulbound)" />
-        <Fila etiqueta="Red" valor="Polygon Amoy (testnet)" />
-        <Fila etiqueta="Versión del DPP" valor={String(lote.version)} />
-      </Bloque>
+    <SeccionWrap id="huella" titulo="Su huella en el planeta">
+      <p className="text-lg text-ylo-ink-soft leading-relaxed max-w-2xl mb-12">
+        Emisiones de CO₂ asociadas a la fabricación de esta prenda, desde la
+        materia prima hasta la salida de fábrica.
+      </p>
 
-      <Bloque titulo="Almacenamiento off-chain">
-        <Fila
-          etiqueta="Protocolo"
-          valor="IPFS (InterPlanetary File System)"
-        />
-        <Fila
-          etiqueta="CID del JSON"
-          valor="[se rellenará tras el despliegue]"
-        />
-      </Bloque>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start max-w-5xl">
+        <div>
+          <p className="text-7xl sm:text-8xl font-bold text-ylo-ink tabular-nums leading-none tracking-tightest">
+            {lote.carbonFootprint.value}
+          </p>
+          <p className="text-base text-ylo-ink-soft mt-3">
+            kgCO₂e por unidad
+          </p>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-5">
-        <p className="text-sm text-amber-900 font-medium">
-          Verificación pública independiente
+          {(esElMasLimpio || esElMasContaminante) && (
+            <div className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-ylo-surface border border-ylo-border">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  esElMasLimpio ? "bg-ylo-pool" : "bg-ylo-poppy"
+                }`}
+              ></span>
+              <p className="text-xs text-ylo-ink">
+                {esElMasLimpio
+                  ? "Tirada con menor huella del modelo"
+                  : "Tirada con mayor huella del modelo"}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-5">
+          <div className="pb-5 border-b border-ylo-border">
+            <p className="text-xs uppercase tracking-widest text-ylo-ink-soft mb-2">
+              Para hacerte una idea
+            </p>
+            <p className="text-base text-ylo-ink leading-relaxed">
+              Equivale a recorrer{" "}
+              <span className="font-semibold">{kmCoche} km</span> en un coche
+              de combustión media.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-widest text-ylo-ink-soft mb-2">
+              Metodología
+            </p>
+            <p className="text-sm text-ylo-ink-soft leading-relaxed">
+              {lote.carbonFootprint.methodology} · alcance{" "}
+              {lote.carbonFootprint.scope}.{" "}
+              {lote.carbonFootprint.certified
+                ? "Verificada por tercero independiente."
+                : "Autodeclaración del operador económico."}
+            </p>
+          </div>
+
+          {(esElMasLimpio || esElMasContaminante) && (
+            <div>
+              <p className="text-xs uppercase tracking-widest text-ylo-ink-soft mb-2">
+                Rango del modelo
+              </p>
+              <p className="text-sm text-ylo-ink-soft leading-relaxed">
+                Las distintas tiradas oscilan entre {huellaMin} y {huellaMax}{" "}
+                kgCO₂e según fábrica y mix energético local.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </SeccionWrap>
+  );
+}
+
+function SeccionCuidado({ lote }: { lote: DPP }) {
+  const consejos = [
+    { titulo: "Lavado", texto: lote.careInstructions.washing },
+    { titulo: "Secado", texto: lote.careInstructions.drying },
+    { titulo: "Planchado", texto: lote.careInstructions.ironing },
+    { titulo: "Reparación", texto: lote.careInstructions.repairTips },
+  ];
+
+  return (
+    <SeccionWrap id="cuidados" titulo="Cuidarla para que dure" surface>
+      <p className="text-lg text-ylo-ink-soft leading-relaxed max-w-2xl mb-12">
+        Una prenda dura más cuando se cuida bien. Y cuando ya no la quieras,
+        puede empezar de nuevo.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12 max-w-4xl">
+        {consejos.map((c, i) => (
+          <div
+            key={i}
+            className="bg-ylo-bg rounded-2xl p-5 border border-ylo-border"
+          >
+            <p className="text-xs uppercase tracking-widest text-ylo-pool-dark mb-2">
+              {c.titulo}
+            </p>
+            <p className="text-sm text-ylo-ink leading-relaxed">{c.texto}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-ylo-ink rounded-3xl p-8 sm:p-10 text-white max-w-4xl">
+        <p className="text-xs uppercase tracking-widest text-white/60 mb-3">
+          Cuando termine su vida útil
         </p>
-        <p className="text-sm text-amber-800 mt-2">
-          Cualquier tercero puede verificar la integridad de este pasaporte
-          consultando directamente la blockchain. Una vez desplegado el contrato
-          en Polygon Amoy, el QR de auditor llevará al token en Polygonscan.
+        <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">
+          {lote.endOfLife.recyclable
+            ? "Esta prenda es reciclable"
+            : "Esta prenda no es reciclable"}
+        </h3>
+        <p className="text-base text-white/80 leading-relaxed mb-4">
+          {lote.endOfLife.recyclingInstructions}
+        </p>
+        <p className="text-sm text-white/60 leading-relaxed">
+          {lote.endOfLife.disassembly}
         </p>
       </div>
-    </div>
+    </SeccionWrap>
   );
 }
 
-function Bloque({
-  titulo,
-  children,
+function OtrasTiradas({
+  lote,
+  otrosLotes,
 }: {
-  titulo: string;
-  children: React.ReactNode;
+  lote: DPP;
+  otrosLotes: (DPP & { idx: number })[];
 }) {
   return (
-    <section className="bg-white border border-stone-200 rounded-lg p-6">
-      <h3 className="text-sm uppercase tracking-wide text-stone-500 mb-4">
-        {titulo}
-      </h3>
-      <div className="space-y-3">{children}</div>
+    <section className="max-w-7xl mx-auto px-6 sm:px-8 py-20">
+      <p className="text-xs uppercase tracking-widest text-ylo-ink-soft mb-3">
+        Otras tiradas
+      </p>
+      <h2 className="text-3xl sm:text-4xl font-bold tracking-tightest text-ylo-ink mb-3">
+        El modelo {lote.modelId} en otros lotes
+      </h2>
+      <p className="text-base text-ylo-ink-soft leading-relaxed max-w-2xl mb-10">
+        El mismo modelo se produce en distintas fábricas a lo largo del año.
+        Cada tirada tiene su propio pasaporte.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
+        {otrosLotes.map((l) => {
+          const v = visualLotes[l.idx];
+          return (
+            <Link
+              key={l.batchId}
+              to={`/dpp/${l.idx}`}
+              className="group flex items-stretch bg-ylo-surface rounded-2xl border border-ylo-border hover:border-ylo-ink transition-colors overflow-hidden"
+            >
+              <div className="w-28 flex-shrink-0 relative overflow-hidden">
+                <img
+                  src={v?.imagenes.front}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1 p-5">
+                <p className="font-mono text-[11px] text-ylo-ink-soft truncate">
+                  {l.batchId}
+                </p>
+                <p className="text-sm font-medium text-ylo-ink mt-2">
+                  {l.production.facility.city},{" "}
+                  {l.production.facility.country}
+                </p>
+                <p className="text-xs text-ylo-ink-soft mt-1">
+                  Huella · {l.carbonFootprint.value} kgCO₂e
+                </p>
+                <p className="text-xs font-medium text-ylo-ink mt-3 group-hover:underline underline-offset-4">
+                  Ver pasaporte →
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
     </section>
   );
 }
 
-function Fila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+function CTAAuditor({ index }: { index: number }) {
   return (
-    <div className="flex justify-between items-start gap-4 text-sm">
-      <span className="text-stone-600">{etiqueta}</span>
-      <span className="text-stone-900 text-right">{valor}</span>
-    </div>
+    <section className="max-w-7xl mx-auto px-6 sm:px-8 pb-24">
+      <div className="bg-ylo-surface border border-ylo-border rounded-3xl p-8 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full bg-ylo-ink flex items-center justify-center flex-shrink-0">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="white"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-ylo-ink-soft mb-1">
+              Para auditores
+            </p>
+            <p className="text-base font-semibold text-ylo-ink">
+              Verificar la integridad de este pasaporte
+            </p>
+            <p className="text-sm text-ylo-ink-soft mt-1">
+              Acceso al hash on-chain, CID de IPFS y enlace a Polygonscan.
+            </p>
+          </div>
+        </div>
+        <Link
+          to={`/audit/${index}`}
+          className="bg-ylo-ink text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-ylo-ink-soft transition-colors whitespace-nowrap"
+        >
+          Verificación técnica
+        </Link>
+      </div>
+    </section>
   );
+}
+
+function SeccionWrap({
+  id,
+  titulo,
+  surface = false,
+  children,
+}: {
+  id: string;
+  titulo: string;
+  surface?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      className={surface ? "bg-ylo-surface" : "bg-ylo-bg"}
+      style={{ scrollMarginTop: "140px" }}
+    >
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-24">
+        <h2 className="text-3xl sm:text-5xl font-bold tracking-tightest text-ylo-ink mb-8">
+          {titulo}
+        </h2>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function formatearFechaLarga(fechaISO: string): string {
+  const meses = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+  ];
+  const [year, month, day] = fechaISO.split("-");
+  return `${Number(day)} de ${meses[Number(month) - 1]} de ${year}`;
 }
 
 export default PaginaDPP;
