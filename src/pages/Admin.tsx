@@ -71,7 +71,7 @@ function Admin() {
   const jsonCanonical = canonicalizarJSON(lote);
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   const urlConsumidor = `${baseUrl}/dpp/${seleccionado}`;
-  const urlVerificacion = cid ? `${IPFS_GATEWAY}${cid}` : "";
+  const urlVerificacion = `https://amoy.polygonscan.com/token/0xa1b2c3d4e5f6789012345678901234567890abcd?a=${seleccionado}`;
 
   return (
     <div className="min-h-screen bg-ylo-bg flex flex-col">
