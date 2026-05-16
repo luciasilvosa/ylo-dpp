@@ -163,8 +163,22 @@ export interface LifecycleEvent {
         disassembly:
           "El elastano dificulta el reciclaje mecánico, se recomienda reciclaje químico",
       },
+lifecycleEvents: [
+        {
+          eventType: "repair",
+          date: "2025-11-12",
+          location: "YLÖ Care · Madrid",
+          description: "Sustitución de cinta elástica del pecho. Reparación realizada en el punto YLÖ Care de Madrid sobre una prenda del lote.",
+        },
+        {
+          eventType: "repair",
+          date: "2026-01-23",
+          location: "YLÖ Care · Barcelona",
+          description: "Recosido de costura lateral. Reparación realizada en el punto YLÖ Care de Barcelona sobre una prenda del lote.",
+        },
+      ],
       schema: "https://ylo.com/dpp/schema/v1.json",
-      version: 1,
+      version: 2,
       language: "es",
     },
     {

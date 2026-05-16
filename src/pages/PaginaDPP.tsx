@@ -48,6 +48,7 @@ function PaginaDPP() {
     todasHuellasModelo.length > 1 && lote.carbonFootprint.value === huellaMin;
   const esElMasContaminante =
     todasHuellasModelo.length > 1 && lote.carbonFootprint.value === huellaMax;
+const tieneHistoria = !!lote.lifecycleEvents && lote.lifecycleEvents.length > 0;
 
   return (
     <div className="min-h-screen bg-ylo-bg flex flex-col">
@@ -55,7 +56,7 @@ function PaginaDPP() {
 
       <main className="flex-1">
         <Hero lote={lote} visual={visual} index={index} />
-        <NavAnclas />
+        <NavAnclas tieneHistoria={tieneHistoria} />
 
         <SeccionMateriales lote={lote} />
         <SeccionRecorrido lote={lote} />
@@ -67,6 +68,7 @@ function PaginaDPP() {
           huellaMax={huellaMax}
         />
         <SeccionCuidado lote={lote} />
+        {tieneHistoria && <SeccionHistoria lote={lote} />}
 
         {otrosLotes.length > 0 && (
           <OtrasTiradas lote={lote} otrosLotes={otrosLotes} />
@@ -246,12 +248,13 @@ function DatoClave({
   );
 }
 
-function NavAnclas() {
+function NavAnclas({ tieneHistoria }: { tieneHistoria: boolean }) {
   const items = [
     { id: "materiales", label: "Materiales" },
     { id: "recorrido", label: "Recorrido" },
     { id: "huella", label: "Huella" },
     { id: "cuidados", label: "Cuidados" },
+    ...(tieneHistoria ? [{ id: "historia", label: "Historia" }] : []),
   ];
 
   return (
@@ -637,7 +640,47 @@ function CTAAuditor({ index }: { index: number }) {
     </section>
   );
 }
+function SeccionHistoria({ lote }: { lote: DPP }) {
+  const eventos = lote.lifecycleEvents || [];
 
+  return (
+    <SeccionWrap id="historia" titulo="Historia de esta prenda">
+      <p className="text-lg text-ylo-ink-soft leading-relaxed max-w-2xl mb-12">
+        Eventos posteriores a la fabricación registrados sobre este lote a lo
+        largo del ciclo de vida.
+      </p>
+
+      <div className="relative max-w-3xl">
+        {eventos.map((ev, i) => (
+          <div key={i} className="flex gap-6 pb-10 last:pb-0 relative">
+            {i < eventos.length - 1 && (
+              <div className="absolute left-[19px] top-12 w-px bg-ylo-border h-[calc(100%-32px)]"></div>
+            )}
+
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-ylo-pool flex items-center justify-center text-white text-sm font-mono z-10">
+              {String(i + 1).padStart(2, "0")}
+            </div>
+
+            <div className="flex-1 pt-1">
+              <p className="text-xs uppercase tracking-widest text-ylo-ink-soft">
+                {ev.eventType === "repair" ? "Reparación" : ev.eventType}
+              </p>
+              <p className="text-lg font-semibold text-ylo-ink mt-1">
+                {ev.location}
+              </p>
+              <p className="text-sm text-ylo-ink-soft mt-1">
+                {formatearFechaLarga(ev.date)}
+              </p>
+              <p className="text-sm text-ylo-ink mt-3 leading-relaxed">
+                {ev.description}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </SeccionWrap>
+  );
+}
 function SeccionWrap({
   id,
   titulo,
