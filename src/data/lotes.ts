@@ -53,7 +53,12 @@ export interface Material {
     recyclingInstructions: string;
     disassembly: string;
   }
-  
+export interface LifecycleEvent {
+  eventType: "repair" | "resale" | "certification_renewal" | "end_of_life";
+  date: string;
+  location: string;
+  description: string;
+}  
   export interface DPP {
     modelId: string;
     batchId: string;
@@ -66,6 +71,7 @@ export interface Material {
     certifications: Certification[];
     careInstructions: CareInstructions;
     endOfLife: EndOfLife;
+    lifecycleEvents?: LifecycleEvent[];
     schema: string;
     version: number;
     language: string;
@@ -338,7 +344,72 @@ export interface Material {
       language: "es",
     },
   ];
-  
+  export const lotePTv2: DPP = {
+  modelId: "YLO-TOP-001",
+  batchId: "YLO-TOP-001-L-2025-04-PT",
+  productName: "Top Aurora",
+  category: "Sportswear / Activewear",
+  materials: [
+    { fiber: "Algodón orgánico", percentage: 95, origin: "Turquía" },
+    { fiber: "Elastano", percentage: 5, origin: "Alemania" },
+  ],
+  production: {
+    productionDate: "2025-04-15",
+    volume: 1200,
+    productionMethod: "Tejido circular",
+    facility: {
+      facilityId: "FAC-PT-COIMBRA-01",
+      name: "Têxtil Coimbra",
+      country: "Portugal",
+      city: "Coimbra",
+    },
+  },
+  suppliers: [
+    { role: "Fibra", name: "Anatolia Organic Cotton Cooperative", country: "Turquía", city: "Esmirna", certifications: ["GOTS"] },
+    { role: "Hilatura", name: "Fiação do Ave", country: "Portugal", city: "Vila Nova de Famalicão", certifications: ["GOTS", "OEKO-TEX Standard 100"] },
+    { role: "Tejeduría", name: "Malhas Ribeiro", country: "Portugal", city: "Vila Nova de Famalicão", certifications: ["GOTS"] },
+    { role: "Tintura y acabado", name: "Tinturaria Vale do Ave", country: "Portugal", city: "Guimarães", certifications: ["GOTS", "ZDHC"] },
+    { role: "Confección", name: "Têxtil Coimbra", country: "Portugal", city: "Coimbra", certifications: ["GOTS", "SA8000"] },
+  ],
+  carbonFootprint: {
+    value: 4.2,
+    unit: "kgCO2e per unit",
+    methodology: "PEF v3.1",
+    scope: "cradle-to-gate",
+    certified: false,
+  },
+  certifications: [
+    { name: "GOTS", issuer: "Global Organic Textile Standard", validUntil: "2026-04-14", certified: true },
+  ],
+  careInstructions: {
+    washing: "Lavado a máquina máximo 30 °C, ciclo suave",
+    drying: "Secado al aire, evitar secadora",
+    ironing: "Plancha a baja temperatura por el revés",
+    repairTips: "Pequeñas roturas pueden coserse a mano con hilo de algodón",
+  },
+  endOfLife: {
+    recyclable: true,
+    recyclingInstructions: "Depositar en contenedor textil municipal o punto de recogida YLÖ",
+    disassembly: "El elastano dificulta el reciclaje mecánico, se recomienda reciclaje químico",
+  },
+  lifecycleEvents: [
+    {
+      eventType: "repair",
+      date: "2025-11-12",
+      location: "YLÖ Care · Madrid",
+      description: "Sustitución de cinta elástica del pecho. Reparación realizada en el punto YLÖ Care de Madrid sobre una prenda del lote.",
+    },
+    {
+      eventType: "repair",
+      date: "2026-01-23",
+      location: "YLÖ Care · Barcelona",
+      description: "Recosido de costura lateral. Reparación realizada en el punto YLÖ Care de Barcelona sobre una prenda del lote.",
+    },
+  ],
+  schema: "https://ylo.com/dpp/schema/v1.json",
+  version: 2,
+  language: "es",
+};
   export interface VisualLote {
     color: string;
     colorName: string;
